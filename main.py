@@ -1,5 +1,6 @@
 #main file for ms3 rover simulation
 import serial
+import argparse
 
 
 class SimCourse:
@@ -34,14 +35,6 @@ class SimCourse:
             return False
 
 
-ser = serial.Serial("COM22", 19200, timeout=1)
-if ser.isOpen():
-    print("Opened port")
-
-#object that will contain course data
-course = SimCourse('movement_commands.txt')
-
-
 #let's make a state machine
 def state0(course_obj):
     """initial state, request sensor data"""
@@ -50,40 +43,59 @@ def state0(course_obj):
         exit(0)
     sensor_request = bytes([0xAA, 0x00, 0x00, 0x00, 0x00])
     ser.write(sensor_request)
-    print("Sent:    ", bytes(sensor_request))
+    print("Sent:    ", "Sensor gather request", bytes(sensor_request))
     from_rover = ser.read(5)
     if from_rover.__len__() == 5:
-        print("Received:", from_rover)
+        print("Received:", "Sensor data frame    ", from_rover)
         if from_rover[0] == 0x01:
-            return state1(course_obj)
+            return state1
         else:
-            return state0(course_obj)
+            return state0
     else:
-        return state0(course_obj)
+        return state0
 
 
 def state1(course_obj):
     """send movement command"""
+    if course_obj.current_place == course_obj.total_commands:
+        print("End of simulation!")
+        exit(0)
     next_move = course_obj.get_next_move()
     ser.write(next_move)
-    print("Sent:    ", bytes(next_move))
+    print("Sent:    ", "Movement command     ", bytes(next_move))
     from_rover = ser.read(5)
     if from_rover.__len__() == 5:
-        print("Received:", from_rover)
+        print("Received:", "Distance traveled    ", from_rover)
         if from_rover[0] == 0x03 and course_obj.check_move_response(from_rover):
-            return state0(course_obj)
+            return state0
         else:
-            return state1(course_obj)
+            return state1
     else:
-        return state1(course_obj)
+        return state1
 
+#time to parse command line args
+parser = argparse.ArgumentParser(description='Simulate G3\'s ARM over UART')
+parser.add_argument("port", help="port to open UART connection on")
+parser.add_argument("command_file", help="file to read commands from")
+parser.add_argument("-n", "--no_sensors", help="turn off gathering sensor data, only send moves", action="store_true")
+args = parser.parse_args()
 
-state = state0(course)
+ser = serial.Serial(args.port, 19200, timeout=1)
+if ser.isOpen():
+    print("Opened port", args.port)
 
+#object that will contain course data
+course = SimCourse(args.command_file)
+
+#initial state
+state = state0
 
 #loop forever
-while state:
-    state(course)
+while 1:
+    if args.no_sensors:
+        state1(course)
+    else:
+        state(course)
 
 print("Simulation has exited upon failure.")
 exit(-1)
