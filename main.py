@@ -95,7 +95,7 @@ while 1:
     if args.no_sensors:
         state1(course)
     else:
-        state(course)
+        state = state(course)
 
 print("Simulation has exited upon failure.")
 exit(-1)
