@@ -1,3 +1,4 @@
-00 00 #this is the first movement command
-ff ff
-ab cd
+20 A0 14 #this is the first movement command
+60 A0 0A
+60 A0 0A
+20 A0 14
