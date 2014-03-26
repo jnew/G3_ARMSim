@@ -49,7 +49,14 @@ def state0(course_obj):
         print("Received:", "Sensor data frame    ", from_rover)
         ##########
         if from_rover[0] == 0x01:
-            return state1
+            if from_rover[1] <= 0x1C:
+                print("reached obstacle")
+                exit(3)
+            if args.just_sensors:
+                time.sleep(0.5)
+                return state0
+            else:
+                return state1
         else:
             return state0
     else:
@@ -59,7 +66,7 @@ def state0(course_obj):
 def state1(course_obj):
     """send movement command, get ack"""
     next_move = course_obj.get_next_move()
-    time.sleep(0.5)
+    time.sleep(0.1)
     ser.write(next_move)
     print("Sent:    ", "Movement command     ", bytes(next_move))
     from_rover = ser.read(5)
@@ -91,6 +98,7 @@ parser = argparse.ArgumentParser(description='Simulate G3\'s ARM over UART')
 parser.add_argument("port", help="port to open UART connection on")
 parser.add_argument("command_file", help="file to read commands from")
 parser.add_argument("-n", "--no_sensors", help="turn off gathering sensor data, only send moves", action="store_true")
+parser.add_argument("-s", "--just_sensors", help="only gather sensor data", action="store_true")
 args = parser.parse_args()
 
 ser = serial.Serial(args.port, 19200, timeout=1)

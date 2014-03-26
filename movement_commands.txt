@@ -1,5 +1,17 @@
-20 A0 14 #forward
-60 A0 0A #90 deg turn
-60 A0 0A
-20 A0 14
-#20 A0 14 #this line is commented out
+#20 A0 14 #forward
+#60 A0 0A #90 deg turn
+#60 A0 0A
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
+20 A0 05
