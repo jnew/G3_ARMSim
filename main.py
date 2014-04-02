@@ -11,15 +11,44 @@ class NavAlgorithm:
     curr_total_distance = [0, 0]
     last_total_distance = [0, 0]
     last_delta_distance = [0, 0]
+    nav_state = "Stopped"
+    little_more = False
+
+    #movement macros
+    bc_half_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])
+    ba_05_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])
+    ba_90_left = bytes([0xBA, 0xE0, 0x20, 0x12, 0x12, 0x00])
+    ba_90_right = bytes([0xBA, 0xA0, 0x60, 0x12, 0x12, 0x00])
 
     def alg_rcv_sensor_data(self, sensor_frame):
         self.curr_sensor_frame = sensor_frame
 
     def alg_get_next_move(self):
-        if self.curr_sensor_frame[1] <= 0x3C:
-            self.curr_movement_comm = bytes([0xBA, 0x60, 0xA0, 0x12, 0x14, 0x00])
-        else:
-            self.curr_movement_comm = bytes([0xBA, 0x20, 0xA0, 0x0A, 0x0A, 0x00])
+        time.sleep(0.2)
+        if self.nav_state == "Stopped":
+            self.curr_movement_comm = self.bc_half_forward
+            self.nav_state = "Forward"
+        elif self.nav_state == "Forward":
+            if self.curr_sensor_frame[2] >= 0x5A and self.curr_sensor_frame[3] >= 0x5A:  # cleared on right side
+                if self.little_more:
+                    self.curr_movement_comm = self.ba_90_right
+                    self.little_more = False
+                    self.nav_state = "On_Corner"
+                else:
+                    self.little_more = True
+                    self.curr_movement_comm = self.bc_half_forward
+            elif self.curr_sensor_frame[1] <= 0x20:
+                self.curr_movement_comm = self.ba_90_left
+                self.nav_state = "Against_Obstacle"
+        elif self.nav_state == "Against_Obstacle":
+            self.curr_movement_comm = self.bc_half_forward
+            self.nav_state = "Forward"
+        elif self.nav_state == "On_Corner":  # have to move forward one rover length
+            if self.curr_sensor_frame[2] <= 0x5A and self.curr_sensor_frame[3] <= 0x5A:  # we are back against a wall
+                self.curr_movement_comm = self.bc_half_forward
+                self.nav_state = "Forward"
+            else:
+                self.curr_movement_comm = self.bc_half_forward
         return self.curr_movement_comm
 
     def alg_check_move_response(self, move_comm):
@@ -41,6 +70,10 @@ class NavAlgorithm:
         else:  # we are still moving
             print("DELTA DISTANCE", self.last_delta_distance)
             return False
+
+    def get_side_delta(self):
+        delta = self.curr_sensor_frame[2]/self.curr_sensor_frame[3]
+        return delta
 
 
 class SimCourse:
