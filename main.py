@@ -16,7 +16,8 @@ class NavAlgorithm:
 
     #movement macros
     bc_half_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])
-    ba_05_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])
+    ba_15cm_forward = bytes([0xBA, 0xA0, 0x20, 0x0F, 0x0F, 0x00])  # 0.5ft
+    ba_45cm_forward = bytes([0xBA, 0xA0, 0x20, 0x2D, 0x2D, 0x00])  # 1.5ft
     ba_90_left = bytes([0xBA, 0xE0, 0x20, 0x12, 0x12, 0x00])
     ba_90_right = bytes([0xBA, 0xA0, 0x60, 0x12, 0x12, 0x00])
 
@@ -36,8 +37,8 @@ class NavAlgorithm:
                     self.nav_state = "On_Corner"
                 else:
                     self.little_more = True
-                    self.curr_movement_comm = self.bc_half_forward
-            elif self.curr_sensor_frame[1] <= 0x20:
+                    self.curr_movement_comm = self.ba_45cm_forward
+            elif self.curr_sensor_frame[1] <= 0x5A:  # we are in front of something
                 self.curr_movement_comm = self.ba_90_left
                 self.nav_state = "Against_Obstacle"
         elif self.nav_state == "Against_Obstacle":
@@ -48,7 +49,7 @@ class NavAlgorithm:
                 self.curr_movement_comm = self.bc_half_forward
                 self.nav_state = "Forward"
             else:
-                self.curr_movement_comm = self.bc_half_forward
+                self.curr_movement_comm = self.ba_45cm_forward
         return self.curr_movement_comm
 
     def alg_check_move_response(self, move_comm):
