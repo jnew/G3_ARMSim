@@ -2,6 +2,7 @@
 import serial
 import argparse
 import time
+import binascii
 
 
 class NavAlgorithm:
@@ -15,7 +16,7 @@ class NavAlgorithm:
     little_more = False
 
     #movement macros
-    bc_half_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])
+    bc_half_forward = bytes([0xBC, 0xA0, 0x20, 0xFF, 0xFF, 0x00])
     ba_15cm_forward = bytes([0xBA, 0xA0, 0x20, 0x0F, 0x0F, 0x00])  # 0.5ft
     ba_45cm_forward = bytes([0xBA, 0xA0, 0x20, 0x2D, 0x2D, 0x00])  # 1.5ft
     ba_90_left = bytes([0xBA, 0xE0, 0x20, 0x12, 0x12, 0x00])
@@ -53,7 +54,7 @@ class NavAlgorithm:
         return self.curr_movement_comm
 
     def alg_check_move_response(self, move_comm):
-        print("Received:", "Movement data        ", move_comm)
+        print("Received:", "Movement data        ", binascii.hexlify(move_comm))
         self.curr_total_distance[0] = move_comm[2]
         self.curr_total_distance[1] = move_comm[3]
 
@@ -97,7 +98,7 @@ class SimCourse:
                     checksum = (as_bytes[1]+as_bytes[2]+as_bytes[3]+as_bytes[4]) & 0x17
                     as_bytes.insert(5, checksum)
                     self.movement_command_array.append(as_bytes)
-                    print("Read in movement command", as_bytes)
+                    print("Read in movement command", binascii.hexlify(as_bytes))
 
     def rcv_sensor_data(self, sensor_frame):
         if args.use_algorithm:
@@ -127,10 +128,10 @@ def state0(course_obj):
     sensor_request = bytes([0xAA, 0x00, 0x00, 0x00, 0x00, 0x00])
     ser.write(sensor_request)
     time.sleep(0.1)
-    print("Sent:    ", "Sensor gather request", bytes(sensor_request))
+    print("Sent:    ", "Sensor gather request", binascii.hexlify(sensor_request))
     from_rover = ser.read(6)
     if from_rover.__len__() == 6:
-        print("Received:", "Sensor data frame    ", from_rover)
+        print("Received:", "Sensor data frame    ", binascii.hexlify(from_rover))
         if from_rover[0] == 0x01:
             print("FRONT:", int(from_rover[1]), "SIDE_FRONT", int(from_rover[2]), "SIDE_BACK:", int(from_rover[3]))
             course_obj.rcv_sensor_data(from_rover)
@@ -150,11 +151,11 @@ def state1(course_obj):
     next_move = course_obj.get_next_move()
     time.sleep(0.1)
     ser.write(next_move)
-    print("Sent:    ", "Movement command     ", bytes(next_move))
+    print("Sent:    ", "Movement command     ", binascii.hexlify(next_move))
     from_rover = ser.read(6)
     if from_rover.__len__() == 6:
         if from_rover[0] == 0x03:
-            print("Received:", "Command Acknowledged ", from_rover)
+            print("Received:", "Command Acknowledged ", binascii.hexlify(from_rover))
             return state2
         else:
             return state1
