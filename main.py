@@ -165,7 +165,7 @@ def state1(course_obj):
 
 def state2(course_obj):
     """check for distance and eventually get finished move"""
-    distance_request = bytes([0xBB, 0x00, 0x00, 0x00, 0x00, 0x00])
+    distance_request = bytes([0xCA, 0x00, 0x00, 0x00, 0x00, 0x00])
     ser.write(distance_request)
     from_rover = ser.read(6)
     if from_rover.__len__() == 6:
