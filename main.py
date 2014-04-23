@@ -31,22 +31,22 @@ class NavAlgorithm:
             self.curr_movement_comm = self.bc_half_forward
             self.nav_state = "Forward"
         elif self.nav_state == "Forward":
-            if self.curr_sensor_frame[2] >= 0x5A and self.curr_sensor_frame[3] >= 0x5A:  # cleared on right side
+            if self.curr_sensor_frame[2] == 0x03 and self.curr_sensor_frame[3] >= 0x03:  # cleared on right side
                 if self.little_more:
                     self.curr_movement_comm = self.ba_90_right
                     self.little_more = False
                     self.nav_state = "On_Corner"
                 else:
                     self.little_more = True
-                    self.curr_movement_comm = self.ba_45cm_forward
-            elif self.curr_sensor_frame[1] <= 0x5A:  # we are in front of something
+                    self.curr_movement_comm = self.ba_15cm_forward
+            elif self.curr_sensor_frame[1] <= 0x01:  # we are in front of something
                 self.curr_movement_comm = self.ba_90_left
                 self.nav_state = "Against_Obstacle"
         elif self.nav_state == "Against_Obstacle":
             self.curr_movement_comm = self.bc_half_forward
             self.nav_state = "Forward"
         elif self.nav_state == "On_Corner":  # have to move forward one rover length
-            if self.curr_sensor_frame[2] <= 0x5A and self.curr_sensor_frame[3] <= 0x5A:  # we are back against a wall
+            if self.curr_sensor_frame[2] <= 0x03 and self.curr_sensor_frame[3] <= 0x03:  # we are back against a wall
                 self.curr_movement_comm = self.bc_half_forward
                 self.nav_state = "Forward"
             else:

@@ -1,5 +1,5 @@
-#E0 20 12 12 #90 deg turn left
-#A0 20 02 02 #forward half speed
-A0 60 12 12 #90 deg turn right
+#E0 20 12 11 #90 deg turn left
+#A0 20 10 10 #forward half speed
+#A0 60 12 12 #90 deg turn right
 #20 A0 05 10
 #20 A0 05 10
