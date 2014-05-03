@@ -13,13 +13,16 @@ class NavAlgorithm:
     last_total_distance = [0, 0]
     last_delta_distance = [0, 0]
     nav_state = "Stopped"
+    start_time = 0
     little_more = False
 
     #movement macros
-    bc_half_forward = bytes([0xBC, 0xA0, 0x20, 0xFF, 0xFF, 0x00])
+    stop = bytes([0xBA, 0x00, 0x00, 0x00, 0x00, 0x00])
+    bc_half_forward = bytes([0xBC, 0x9B, 0x1B, 0xFF, 0xFF, 0x00])
+    bd_half_forward = bytes([0xBD, 0xA0, 0x20, 0xFF, 0xFF, 0x00])
     ba_05cm_forward = bytes([0xBA, 0xA0, 0x20, 0x05, 0x05, 0x00])  # small distance
-    ba_15cm_forward = bytes([0xBA, 0xA0, 0x20, 0x0C, 0x0C, 0x00])  # 0.4ft
-    ba_45cm_forward = bytes([0xBA, 0xA0, 0x20, 0x2D, 0x2D, 0x00])  # 1.5ft
+    ba_12cm_forward = bytes([0xBA, 0xA0, 0x20, 0x0C, 0x0C, 0x00])  # 0.4ft ish
+    ba_45cm_forward = bytes([0xBA, 0xA0, 0x20, 0x2D, 0x2D, 0x00])  # 1.5ft ish
     ba_90_left = bytes([0xBA, 0xE0, 0x20, 0x12, 0x12, 0x00])
     ba_90_right = bytes([0xBA, 0x9C, 0x60, 0x12, 0x12, 0x00])
 
@@ -27,22 +30,28 @@ class NavAlgorithm:
         self.curr_sensor_frame = sensor_frame
 
     def alg_get_next_move(self):
-        time.sleep(0.2)
+        time.sleep(0.5)
         if self.nav_state == "Stopped":
             self.curr_movement_comm = self.bc_half_forward
             self.nav_state = "Forward"
         elif self.nav_state == "Forward":
-            if self.curr_sensor_frame[2] == 0x04 and self.curr_sensor_frame[3] == 0x04:  # cleared on right side
+            if self.curr_sensor_frame[4] == 0x01:
+                print("LINE: TIME ELAPSED IS", time.time() - self.start_time)
+                self.start_time = time.time()
+                self.curr_movement_comm = self.ba_12cm_forward
+            elif self.curr_sensor_frame[2] == 0x04 and self.curr_sensor_frame[3] == 0x04:  # cleared on right side
                 if self.little_more:
                     self.curr_movement_comm = self.ba_90_right
                     self.little_more = False
                     self.nav_state = "On_Corner"
                 else:
                     self.little_more = True
-                    self.curr_movement_comm = self.ba_15cm_forward
+                    self.curr_movement_comm = self.ba_12cm_forward
             elif self.curr_sensor_frame[1] == 0x01:  # we are in front of something
                 self.curr_movement_comm = self.ba_90_left
                 self.nav_state = "Against_Obstacle"
+            else:
+                self.curr_movement_comm = self.bc_half_forward
         elif self.nav_state == "Against_Obstacle":
             #if self.curr_sensor_frame[2] == 0x03
             self.curr_movement_comm = self.bc_half_forward
@@ -51,8 +60,10 @@ class NavAlgorithm:
             if self.curr_sensor_frame[2] != 0x04 and self.curr_sensor_frame[3] != 0x04:  # we are back against a wall
                 self.curr_movement_comm = self.bc_half_forward
                 self.nav_state = "Forward"
+            elif self.curr_sensor_frame[1] == 0x01:  # we are too close to something, stop and turn left
+                self.curr_movement_comm = self.ba_90_left
             else:
-                self.curr_movement_comm = self.ba_05cm_forward
+                self.curr_movement_comm = self.bd_half_forward
         return self.curr_movement_comm
 
     def alg_check_move_response(self, move_comm):
@@ -176,7 +187,7 @@ def state2(course_obj):
         else:
             return state2
     else:
-        return state2
+        return state0
 
 
 #time to parse command line args
